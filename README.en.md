@@ -48,7 +48,7 @@ Open **Plugins → Add plugin** and enter:
 github:GHSYES/dsh-whale-girl-pet
 ```
 
-A full URL (`https://github.com/GHSYES/dsh-whale-girl-pet`) works too. Enter **only the source**; do not paste the whole `dsh plugin ... add ...` command, or DSH reports "not a package name the registry accepts".
+A full URL (`https://ghfast.top/https://github.com/GHSYES/dsh-whale-girl-pet/archive/refs/heads/main.tar.gz`) works too. Enter **only the source**; do not paste the whole `dsh plugin ... add ...` command, or DSH reports "not a package name the registry accepts".
 
 ### CLI
 
