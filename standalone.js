@@ -18,8 +18,17 @@
   function post(p, b) {
     return fetch(ROUTE + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b || {}) }).catch(function () {})
   }
+  var fails = 0
   function pick() {
-    return fetch(ROUTE + '/api/state').then(function (r) { return r.json() }).catch(function () { return null })
+    return fetch(ROUTE + '/api/state')
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
+      .then(function (j) { fails = 0; return j })
+      .catch(function () {
+        fails += 1
+        // Host restarted or moved to another port: close this stale window so a new one can take the lock.
+        if (fails >= 10) { try { window.whalePet && window.whalePet.close() } catch (err) {} }
+        return null
+      })
   }
 
   function applyWin(j) {

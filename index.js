@@ -3,11 +3,15 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { ensureElectronRuntime, electronRuntimeInfo, runtimeExe } from './runtime.js'
 
 const PACKAGE_ROOT = path.dirname(fileURLToPath(import.meta.url))
 const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh')
 const PET_DIR = path.join(DSH_HOME, 'pets', 'whale-girl-emoji')
 const GIF_DIR = path.join(PET_DIR, 'gifs')
+const BUNDLED_DIR = path.join(PACKAGE_ROOT, 'assets')
+const BUNDLED_GIF_DIR = path.join(BUNDLED_DIR, 'gifs')
+const BUNDLED_CATALOG = path.join(BUNDLED_DIR, 'catalog.json')
 const STATE_DIR = path.join(DSH_HOME, 'whale-pet')
 const SETTINGS_FILE = path.join(STATE_DIR, 'settings.json')
 const DESKTOP_DIR = path.join(STATE_DIR, 'desktop')
@@ -71,27 +75,43 @@ const FALLBACK_ANIMS = [
   { key: 'thumbs-up', title: '举大拇指', state: 'bonus', gif: '22-thumbs-up.gif' },
 ]
 
+function resolveGifFile(name) {
+  const safe = path.basename(String(name || ''))
+  if (!safe) return ''
+  for (const dir of [GIF_DIR, BUNDLED_GIF_DIR]) {
+    const file = path.join(dir, safe)
+    try { if (fs.statSync(file).isFile()) return file } catch (err) {}
+  }
+  return ''
+}
+
 function readCatalog() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(path.join(PET_DIR, 'catalog.json'), 'utf8'))
-    const list = Array.isArray(raw && raw.anims) ? raw.anims : []
-    const out = []
-    for (const item of list) {
-      const gif = String(item.gif || '')
-      if (!gif) continue
-      if (!fs.existsSync(path.join(GIF_DIR, gif))) continue
-      out.push({
-        key: String(item.key || ''),
-        title: String(item.title || item.key || ''),
-        state: String(item.state || 'idle'),
-        trigger: String(item.trigger || ''),
-        summary: String(item.summary || ''),
-        gif: gif,
-      })
-    }
-    if (out.length > 0) return out
-  } catch (err) {}
-  return FALLBACK_ANIMS.filter((a) => fs.existsSync(path.join(GIF_DIR, a.gif)))
+  // Merge the bundled catalog with the live DSH pet library. The library wins
+  // per key, so a drop-in replacement set overrides the shipped art without
+  // requiring the whole plugin to be edited; missing files fall back to bundled.
+  const byKey = new Map()
+  for (const file of [BUNDLED_CATALOG, path.join(PET_DIR, 'catalog.json')]) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(file, 'utf8'))
+      const list = Array.isArray(raw && raw.anims) ? raw.anims : []
+      for (const item of list) {
+        const gif = path.basename(String(item.gif || ''))
+        const key = String(item.key || '')
+        if (!key || !gif || !resolveGifFile(gif)) continue
+        byKey.set(key, {
+          key: key,
+          title: String(item.title || key),
+          state: String(item.state || 'idle'),
+          trigger: String(item.trigger || ''),
+          summary: String(item.summary || ''),
+          gif: gif,
+        })
+      }
+    } catch (err) {}
+  }
+  const out = Array.from(byKey.values())
+  if (out.length > 0) return out
+  return FALLBACK_ANIMS.filter((a) => resolveGifFile(a.gif))
 }
 
 let catalog = readCatalog()
@@ -278,7 +298,9 @@ function statePayload() {
       turns: anyTurnActive(),
       completedTurns: completedTurns,
       sessions: sessions.size,
-      electron: electronPath() ? 'ready' : 'missing',
+      electron: electronStatus(),
+      electronProgress: electronDetail().progress,
+      electronMessage: electronDetail().message,
     },
     now: Date.now(),
   }
@@ -287,6 +309,7 @@ function statePayload() {
 function electronPath() {
   const candidates = [
     process.env.WHALE_PET_ELECTRON,
+    runtimeExe(STATE_DIR),
     path.join(DSH_HOME, 'dsh-orb', 'electron-runtime', 'electron.exe'),
     path.join(DSH_HOME, 'dsh-orb', 'electron-runtime', 'electron'),
     path.join(DSH_HOME, 'pets', '.runtime', 'electron.exe'),
@@ -298,6 +321,21 @@ function electronPath() {
   return ''
 }
 
+function electronStatus() {
+  if (electronPath()) return 'ready'
+  const info = electronRuntimeInfo()
+  return info.status || 'missing'
+}
+
+function electronDetail() {
+  const info = electronRuntimeInfo()
+  return {
+    status: electronStatus(),
+    progress: info.progress || 0,
+    message: info.message || '',
+  }
+}
+
 function writeDesktopApp() {
   fs.mkdirSync(DESKTOP_DIR, { recursive: true })
   const src = path.join(PACKAGE_ROOT, 'desktop')
@@ -307,6 +345,15 @@ function writeDesktopApp() {
 }
 
 let desktopStartedAt = 0
+function prepareElectronRuntime() {
+  if (electronPath()) return
+  const info = electronRuntimeInfo()
+  if (info.status === 'downloading') return
+  if (info.status === 'error' && info.at && Date.now() - info.at < 600000) return
+  ensureElectronRuntime({ stateDir: STATE_DIR, log: logSpawn }).then((ok) => {
+    if (ok) { desktopStartedAt = 0; try { ensureDesktop() } catch (err) {} }
+  })
+}
 function logSpawn(msg) {
   try {
     fs.mkdirSync(STATE_DIR, { recursive: true })
@@ -317,7 +364,8 @@ let desktopOrigin = ''
 
 function ensureDesktop() {
   const exe = electronPath()
-  if (!exe || !clientOrigin) { logSpawn('skip exe=' + exe + ' origin=' + clientOrigin); return false }
+  if (!exe) { prepareElectronRuntime(); logSpawn('skip: electron ' + electronStatus()); return false }
+  if (!clientOrigin) { logSpawn('skip: no client origin'); return false }
   if (desktopChild && desktopChild.exitCode === null) {
     if (desktopOrigin === clientOrigin) return true
     logSpawn('origin changed, restart desktop old=' + desktopOrigin + ' new=' + clientOrigin)
@@ -389,7 +437,7 @@ function readBody(req) {
 
 function serveGif(res, name) {
   const safe = path.basename(String(name || ''))
-  const file = path.join(GIF_DIR, safe)
+  const file = resolveGifFile(safe)
   let buf
   try { buf = fs.readFileSync(file) } catch (err) { res.writeHead(404); res.end('not found'); return }
   res.writeHead(200, { 'content-type': MIME[path.extname(safe).toLowerCase()] || 'application/octet-stream', 'cache-control': 'public, max-age=3600' })
@@ -413,7 +461,7 @@ function handle(req, res) {
   const url = new URL(req.url || '/', 'http://127.0.0.1')
   const pathname = url.pathname
   if (pathname === ROUTE + '/api/state') { sendJson(res, 200, statePayload()); return }
-  if (pathname === ROUTE + '/api/catalog') { catalog = readCatalog(); sendJson(res, 200, { ok: true, catalog: catalog, petDir: PET_DIR, electron: electronPath() ? 'ready' : 'missing' }); return }
+  if (pathname === ROUTE + '/api/catalog') { catalog = readCatalog(); sendJson(res, 200, { ok: true, catalog: catalog, petDir: PET_DIR, assetDir: BUNDLED_DIR, electron: electronStatus(), electronDetail: electronDetail() }); return }
   if (pathname === ROUTE + '/api/hello') {
     readBody(req).then((body) => {
       const origin = String(body.origin || '')
@@ -424,7 +472,7 @@ function handle(req, res) {
         if (changed && desktopChild) stopDesktop()
         ensureDesktop()
       }
-      sendJson(res, 200, { ok: true, desktop: settings.desktop === true, electron: electronPath() ? 'ready' : 'missing' })
+      sendJson(res, 200, { ok: true, desktop: settings.desktop === true, electron: electronStatus(), electronDetail: electronDetail() })
     })
     return
   }
@@ -438,11 +486,11 @@ function handle(req, res) {
         settings.opacity = Math.max(0.2, Math.min(1, Number(settings.opacity) || 1))
         saveSettings()
         if (settings.desktop === true) ensureDesktop(); else if (body && body.desktop === false) stopDesktop()
-        sendJson(res, 200, { ok: true, settings: settings, electron: electronPath() ? 'ready' : 'missing' })
+        sendJson(res, 200, { ok: true, settings: settings, electron: electronStatus(), electronDetail: electronDetail() })
       })
       return
     }
-    sendJson(res, 200, { ok: true, settings: settings, electron: electronPath() ? 'ready' : 'missing' })
+    sendJson(res, 200, { ok: true, settings: settings, electron: electronStatus(), electronDetail: electronDetail() })
     return
   }
   if (pathname === ROUTE + '/api/interaction') {
@@ -471,12 +519,27 @@ function handle(req, res) {
     })
     return
   }
+  if (pathname === ROUTE + '/api/runtime') {
+    if (req.method === 'POST') {
+      const info = electronRuntimeInfo()
+      if (info.status === 'error' && info.at && Date.now() - info.at < 5000) {
+        sendJson(res, 200, { ok: false, electron: electronStatus(), electronDetail: electronDetail() })
+        return
+      }
+      ensureElectronRuntime({ stateDir: STATE_DIR, log: logSpawn }).then((ok) => {
+        sendJson(res, 200, { ok: ok, electron: electronStatus(), electronDetail: electronDetail() })
+      })
+      return
+    }
+    sendJson(res, 200, { ok: true, electron: electronStatus(), electronDetail: electronDetail(), version: '44.0.0' })
+    return
+  }
   if (pathname === ROUTE + '/api/desktop') {
     readBody(req).then((body) => {
       if (body && body.open === false) { settings.desktop = false; saveSettings(); stopDesktop(); sendJson(res, 200, { ok: true, desktop: false }); return }
       settings.desktop = true; saveSettings()
       const ok = ensureDesktop()
-      sendJson(res, 200, { ok: ok, desktop: true, electron: electronPath() ? 'ready' : 'missing' })
+      sendJson(res, 200, { ok: ok, desktop: true, electron: electronStatus(), electronDetail: electronDetail() })
     })
     return
   }
