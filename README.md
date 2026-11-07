@@ -48,7 +48,7 @@
 github:GHSYES/dsh-whale-girl-pet
 ```
 
-也可以填完整地址 `https://github.com/GHSYES/dsh-whale-girl-pet`。这里只填“来源”，**不要粘贴整条 `dsh plugin ... add ...` 命令**，否则会报“无法识别这个包名或地址”。
+也可以填完整地址 `(https://ghfast.top/https://github.com/GHSYES/dsh-whale-girl-pet/archive/refs/heads/main.tar.gz)`。这里只填“来源”，**不要粘贴整条 `dsh plugin ... add ...` 命令**，否则会报“无法识别这个包名或地址”。
 
 ### 命令行
 
