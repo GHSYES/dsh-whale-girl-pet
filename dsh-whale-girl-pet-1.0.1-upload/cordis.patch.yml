@@ -1,5 +1,0 @@
-# Bundle patch for dsh-whale-pet.
-# 把本包作为宿主插件挂上（name 是包名，按 profile 的 node_modules 解析）。
-- insert:
-    - id: whale-pet
-      name: dsh-whale-pet
