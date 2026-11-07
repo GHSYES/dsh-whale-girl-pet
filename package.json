@@ -1,0 +1,62 @@
+{
+  "name": "dsh-whale-pet",
+  "version": "0.1.0",
+  "description": "把 DSH 会话状态变成 Windows 桌面上的像素鲸娘桌宠：实时动作、戳脸、Ctrl 拖动、缩放与任务完成提醒。",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "desktop-pet",
+    "electron",
+    "pixel-art",
+    "windows",
+    "whale"
+  ],
+  "files": [
+    "index.js",
+    "client.js",
+    "desktop",
+    "cordis.patch.yml",
+    "README.md",
+    "standalone.js",
+    "preview.png"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "displayName": "鲸娘桌宠",
+    "description": "只显示在 Windows 桌面上的像素鲸娘：跟着 DSH 会话状态换动作，可戳、可拖、可缩放；带设置交互面板。",
+    "engines": {
+      "dsh": ">=0.2.0-rc.2"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "GHSYES",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GHSYES/dsh-whale-girl-pet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GHSYES/dsh-whale-girl-pet/issues"
+  },
+  "homepage": "https://github.com/GHSYES/dsh-whale-girl-pet#readme"
+}
