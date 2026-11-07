@@ -33,6 +33,12 @@
 
   function applyWin(j) {
     var s = (j && j.settings) || {}
+    // 宿主里关掉「显示在桌面上」时，旧窗必须自己退出；否则它会一直留在桌面上、
+    // 又因为拿不到新端口而看起来关不掉。
+    if (s.desktop === false) {
+      try { window.whalePet && window.whalePet.close() } catch (err) {}
+      return
+    }
     var size = Math.max(72, Math.min(480, Number(s.size) || 180))
     if (size !== lastSize) { lastSize = size; try { window.whalePet && window.whalePet.resizeTo(size) } catch (err) {} }
     var ct = !!s.clickThrough

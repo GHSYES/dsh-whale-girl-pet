@@ -38,7 +38,17 @@
 
 ### 插件市场（推荐）
 
-在 DSH 的 **插件 → 发现 / 插件市场** 里搜索 `dsh-whale-girl-pet` 或「鲸娘桌宠」，点安装。市场目录从 awesome-dsh-plugin 同步，收录后通常一天内出现；暂时搜不到就用下面的命令行方式。
+在 DSH 的 **插件 → 发现 / 插件市场** 里搜索 `dsh-whale-girl-pet` 或「鲸娘桌宠」，点安装。市场目录从 awesome-dsh-plugin 同步，收录后通常一天内出现；暂时搜不到就用下面的界面或命令行方式。
+
+### DSH 界面「添加插件」
+
+打开 **插件 → 添加插件**，在输入框里填：
+
+```text
+github:GHSYES/dsh-whale-girl-pet
+```
+
+也可以填完整地址 `https://github.com/GHSYES/dsh-whale-girl-pet`。这里只填“来源”，**不要粘贴整条 `dsh plugin ... add ...` 命令**，否则会报“无法识别这个包名或地址”。
 
 ### 命令行
 

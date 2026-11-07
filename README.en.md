@@ -38,7 +38,17 @@ The art ships with the plugin, so a fresh install works out of the box. Drop sam
 
 ### Plugin market (recommended)
 
-Open **Plugins → Discover / Market** in DSH and search for `dsh-whale-girl-pet` or "Whale-Girl Pet". The catalog syncs from awesome-dsh-plugin, so a newly accepted entry usually appears within a day. If it is not there yet, use the CLI route below.
+Open **Plugins → Discover / Market** in DSH and search for `dsh-whale-girl-pet` or "Whale-Girl Pet". The catalog syncs from awesome-dsh-plugin, so a newly accepted entry usually appears within a day. If it is not there yet, use the GUI or CLI route below.
+
+### DSH GUI: Add plugin
+
+Open **Plugins → Add plugin** and enter:
+
+```text
+github:GHSYES/dsh-whale-girl-pet
+```
+
+A full URL (`https://github.com/GHSYES/dsh-whale-girl-pet`) works too. Enter **only the source**; do not paste the whole `dsh plugin ... add ...` command, or DSH reports "not a package name the registry accepts".
 
 ### CLI
 

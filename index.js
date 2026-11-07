@@ -163,6 +163,8 @@ let lastCarryAt = 0
 let reaction = null
 let forced = null
 let subagents = 0
+let eventsSeen = 0
+let listenersBound = false
 let wasSleeping = false
 let completedTurns = 0
 let clientOrigin = ''
@@ -190,6 +192,7 @@ function markError(st, now) {
 }
 
 function onSessionEvent(session, event) {
+  eventsSeen += 1
   try {
     const sid = session && session.id ? String(session.id) : 'default'
     const st = sessionOf(sid)
@@ -316,6 +319,8 @@ function statePayload() {
       turns: anyTurnActive(),
       completedTurns: completedTurns,
       sessions: sessions.size,
+      eventsSeen: eventsSeen,
+      listenersBound: listenersBound,
       electron: electronStatus(),
       electronProgress: electronDetail().progress,
       electronMessage: electronDetail().message,
@@ -380,8 +385,24 @@ function logSpawn(msg) {
 }
 let desktopOrigin = ''
 
+function desktopHeartbeatFile() { return path.join(DESKTOP_DIR, 'heartbeat.json') }
+function desktopUrl() { return clientOrigin ? clientOrigin + ROUTE + '/standalone' : '' }
+// 桌面窗每 2 秒写一次心跳；宿主重启后若旧窗还活着，靠它避免每 10 秒重复 spawn
+// （重复 spawn 会触发单实例锁的 second-instance，旧窗被反复 loadURL + focus，看起来就是不停刷新、抢鼠标）。
+function desktopAlive() {
+  try {
+    const beat = JSON.parse(fs.readFileSync(desktopHeartbeatFile(), 'utf8'))
+    if (!beat || Date.now() - Number(beat.at || 0) > 9000) return false
+    const want = desktopUrl()
+    if (want && beat.url && beat.url !== want) return false
+    return true
+  } catch (err) { return false }
+}
+function clearDesktopHeartbeat() { try { fs.unlinkSync(desktopHeartbeatFile()) } catch (err) {} }
+
 function ensureDesktop() {
   const exe = electronPath()
+  if (desktopAlive()) return true
   if (!exe) { prepareElectronRuntime(); logSpawn('skip: electron ' + electronStatus()); return false }
   if (!clientOrigin) { logSpawn('skip: no client origin'); return false }
   if (desktopChild && desktopChild.exitCode === null) {
@@ -424,6 +445,7 @@ function stopDesktop() {
   }
   desktopChild = null
   desktopOrigin = ''
+  clearDesktopHeartbeat()
 }
 
 const MIME = {
@@ -488,7 +510,9 @@ function handle(req, res) {
         clientOrigin = origin
         if (settings.origin !== origin) { settings.origin = origin; saveSettings() }
         if (changed && desktopChild) stopDesktop()
-        ensureDesktop()
+        // 只有用户开着「显示在桌面上」才拉起窗口；否则桌宠页每次 hello 都会
+        // 重新 spawn，形成“窗口不停刷新/关不掉”的循环。
+        if (settings.desktop === true) ensureDesktop()
       }
       sendJson(res, 200, { ok: true, desktop: settings.desktop === true, electron: electronStatus(), electronDetail: electronDetail() })
     })
@@ -697,6 +721,7 @@ function onDomainChange(change) {
 }
 
 export function apply(ctx) {
+  const timerList = []
   try {
     const disposeList = []
     try {
@@ -704,11 +729,13 @@ export function apply(ctx) {
       if (registry && Array.isArray(registry.archivedSessionIds)) archivedPrev = new Set(registry.archivedSessionIds.map(String))
     } catch (err) {}
     if (archivedPrev === null) archivedPrev = new Set()
-    disposeList.push(ctx.on('session/event', onSessionEvent))
-    try { disposeList.push(ctx.on('domain/changed', onDomainChange)) } catch (err) {}
-    try { disposeList.push(ctx.on('subagent/start', () => { subagents += 1; lastActivity = Date.now(); resetIdleCycle(lastActivity) })) } catch (err) {}
-    try { disposeList.push(ctx.on('subagent/end', () => { subagents = Math.max(0, subagents - 1); lastActivity = Date.now(); resetIdleCycle(lastActivity) })) } catch (err) {}
-    try { disposeList.push(ctx.on('session/disposed', (session) => { if (session && session.id) sessions.delete(String(session.id)) })) } catch (err) {}
+    // global: true —— 团队/子代理会话有隔离作用域，非 global 的监听收不到它们的 session/event。
+    disposeList.push(ctx.on('session/event', onSessionEvent, { global: true }))
+    try { disposeList.push(ctx.on('domain/changed', onDomainChange, { global: true })) } catch (err) {}
+    try { disposeList.push(ctx.on('subagent/start', () => { subagents += 1; lastActivity = Date.now(); resetIdleCycle(lastActivity) }, { global: true })) } catch (err) {}
+    try { disposeList.push(ctx.on('subagent/end', () => { subagents = Math.max(0, subagents - 1); lastActivity = Date.now(); resetIdleCycle(lastActivity) }, { global: true })) } catch (err) {}
+    try { disposeList.push(ctx.on('session/disposed', (session) => { if (session && session.id) sessions.delete(String(session.id)) }, { global: true })) } catch (err) {}
+    listenersBound = true
     if (typeof ctx.effect === 'function') {
       ctx.effect(() => () => { for (const off of disposeList) { try { off() } catch (err) {} } stopDesktop() }, 'whale-pet: listeners')
     }
@@ -716,7 +743,13 @@ export function apply(ctx) {
   try { ctx.inject(['webServer'], startRoutes) } catch (err) {}
   if (!clientOrigin && typeof settings.origin === 'string') clientOrigin = settings.origin
   if (clientOrigin) startWorkbenchWatch(clientOrigin)
-  setTimeout(() => { try { if (settings.desktop === true) ensureDesktop() } catch (err) {} }, 2500)
-  setInterval(() => { try { if (settings.desktop === true) ensureDesktop() } catch (err) {} }, 10000)
+  timerList.push(setTimeout(() => { try { if (settings.desktop === true) ensureDesktop() } catch (err) {} }, 2500))
+  timerList.push(setInterval(() => { try { if (settings.desktop === true) ensureDesktop() } catch (err) {} }, 10000))
+  if (typeof ctx.effect === 'function') {
+    ctx.effect(() => () => {
+      for (const t of timerList) { try { clearTimeout(t); clearInterval(t) } catch (err) {} }
+      if (workbenchTimer) { try { clearInterval(workbenchTimer) } catch (err) {} workbenchTimer = null }
+    }, 'whale-pet: timers')
+  }
   try { process.once('exit', () => { try { stopDesktop() } catch (err) {} }) } catch (err) {}
 }
