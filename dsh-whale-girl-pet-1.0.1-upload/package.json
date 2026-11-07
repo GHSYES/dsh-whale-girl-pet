@@ -1,0 +1,68 @@
+{
+  "name": "dsh-whale-pet",
+  "version": "1.0.1",
+  "description": "Pixel whale-girl desktop pet for DeepSeek Harness: live agent state, poke, drag, resize, and a transparent always-on-top Windows desktop window.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "GHSYES",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GHSYES/dsh-whale-girl-pet.git"
+  },
+  "homepage": "https://github.com/GHSYES/dsh-whale-girl-pet#readme",
+  "bugs": {
+    "url": "https://github.com/GHSYES/dsh-whale-girl-pet/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "desktop-pet",
+    "electron",
+    "pixel-art",
+    "whale"
+  ],
+  "files": [
+    "index.js",
+    "runtime.js",
+    "client.js",
+    "standalone.js",
+    "desktop",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "preview.png",
+    "preview-en.png",
+    "docs"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "displayName": "鲸娘桌宠",
+    "description": "A pixel whale-girl that lives on your Windows desktop and mirrors the DSH agent's real-time state.",
+    "engines": {
+      "dsh": ">=0.2.0-rc.2"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
