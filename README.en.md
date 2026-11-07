@@ -17,7 +17,8 @@ The art ships with the plugin, so a fresh install works out of the box. Drop sam
 ## Features
 
 - **Live state, not random animation.** Priority chain:
-  `settings preview > interaction reaction > waiting for approval/question > error > context compaction/archive > worktree carrying > subagent juggling (>=2) > building (>=3 sessions using tools) > music (2) > typing (1) > thinking (turn running) > task complete (loop until clicked) > sleeping (60s idle) > idle pool (7 animations, rotates every 30s)`.
+  `settings preview > interaction reaction > waiting for approval/question > error > context compaction/archive > worktree carrying > subagent juggling (>=2) > building (>=3 sessions using tools) > music (2) > typing (1) > thinking (turn running) > task complete (loop until clicked) > sleeping (5 min without interaction) > idle loop (30s blink + one random extra action, played once)`.
+- **Idle is a loop, not a frozen blink.** Each round holds the blink for 30 seconds, then plays one randomly chosen extra idle action once, then returns to blinking. After 5 minutes without interaction she falls asleep until clicked, then resumes the loop. Real session, tool, and approval states always win.
 - **Completion that waits for you.** A normal main-session turn end, or a workbench task moving to done, starts a looping "task complete" animation. One click acknowledges it, plays a thumbs-up, and returns to normal. Subagent completion and errors never celebrate.
 - **Interactions.** Click the left/right half = poke; three clicks within one second = tickle; **hold Ctrl and drag** = pick her up (a plain drag does not move the window); right-click = native menu (zoom in / out / reset / hide). Clicking a sleeping pet wakes her.
 - **Small surprises.** 12% of pokes turn into hearts; 18% of normal turn ends turn into hearts instead of the completion loop.
@@ -82,26 +83,26 @@ DSH Settings → Whale-Girl Pet:
 
 | Animation | Key | Trigger |
 | --- | --- | --- |
-| Idle blink | `idle` | Nothing to do; idle pool |
-| Look around | `idle-look` | Idle pool |
-| Happy spout | `idle-spout` | Idle pool |
+| Idle blink | `idle` | Nothing to do; the 30s blink segment of the idle loop |
+| Look around | `idle-look` | Idle loop, random, played once |
+| Happy spout | `idle-spout` | Idle loop, random, played once |
 | Thinking | `thinking` | A turn is running |
 | Typing | `typing` | One session is using tools |
-| Music | `music` | Two sessions using tools; also idle pool |
-| Subagent juggling | `conducting` | >=2 subagents; also idle pool |
-| Building | `building` | >=3 sessions using tools; also idle pool |
+| Music | `music` | Two sessions using tools; also idle loop |
+| Subagent juggling | `conducting` | >=2 subagents; also idle loop |
+| Building | `building` | >=3 sessions using tools; also idle loop |
 | Error | `error` | Tool failure or abnormal turn end, about 4.5s |
 | Task complete | `happy` | Main-session turn end or workbench done; loops until clicked |
 | Needs approval | `notification` | Approval or question is waiting |
 | Compacting | `compacting` | Context compaction or archived session, about 4.2s |
 | Carrying | `carrying` | Worktree created, about 4.2s |
-| Sleeping | `sleeping` | 60s without events |
-| Waking | `waking` | Click while sleeping |
+| Sleeping | `sleeping` | 5 minutes without interaction; stays asleep until clicked |
+| Waking | `waking` | Click while sleeping; resumes the idle loop |
 | Poke left | `poke-left` | Click left half |
 | Poke right | `poke-right` | Click right half |
 | Tickle | `tickle` | Three clicks within one second |
 | Picked up | `drag` | Hold Ctrl and drag |
-| Swim | `swim` | Idle pool |
+| Swim | `swim` | Idle loop, random, played once |
 | Hearts | `smile-hearts` | 12% of pokes / 18% of normal turn ends |
 | Thumbs up | `thumbs-up` | Acknowledge the completion loop |
 

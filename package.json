@@ -1,6 +1,6 @@
 {
   "name": "dsh-whale-pet",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pixel whale-girl desktop pet for DeepSeek Harness: live agent state, poke, drag, resize, and a transparent always-on-top Windows desktop window.",
   "type": "module",
   "main": "index.js",

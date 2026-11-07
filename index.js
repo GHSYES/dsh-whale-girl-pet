@@ -16,7 +16,17 @@ const STATE_DIR = path.join(DSH_HOME, 'whale-pet')
 const SETTINGS_FILE = path.join(STATE_DIR, 'settings.json')
 const DESKTOP_DIR = path.join(STATE_DIR, 'desktop')
 const ROUTE = '/whale-pet'
-const IDLE_ROTATE_MS = 30000
+const IDLE_HOLD_MS = 30000
+const SLEEP_AFTER_MS = 5 * 60 * 1000
+// 非「待机眨眼」的待机动作只播一轮；时长略长于 GIF 单次循环，避免被轮询截断。
+const IDLE_ONESHOTS = [
+  ['idle-look', 3800],
+  ['idle-spout', 3000],
+  ['swim', 1700],
+  ['music', 1700],
+  ['conducting', 2300],
+  ['building', 3000],
+]
 const CLICK_BONUS_RATE = 0.12
 const TURN_BONUS_RATE = 0.18
 const HAPPY_MS = 5200
@@ -119,30 +129,33 @@ function animOf(key) {
   for (const a of catalog) if (a.key === key) return a
   return catalog.length > 0 ? catalog[0] : null
 }
-const STATE_POOLS = {
-  idle: ['idle', 'idle-look', 'idle-spout', 'swim', 'music', 'conducting', 'building'],
-  working: ['typing', 'music', 'building'],
-  attention: ['happy'],
-  notification: ['notification'],
-  error: ['error'],
-  sweeping: ['compacting'],
-  carrying: ['carrying'],
-  sleeping: ['sleeping'],
-  waking: ['waking'],
-  thinking: ['thinking'],
-  juggling: ['conducting'],
-  reaction: ['poke-left', 'poke-right', 'tickle', 'drag'],
-  bonus: ['smile-hearts', 'thumbs-up'],
+function pickIdleAction() {
+  // 跨轮次也不连续播同一个动作，醒来后的新一轮同样适用。
+  const choices = IDLE_ONESHOTS.filter(([key]) => key !== lastIdlePickKey)
+  const pool = choices.length > 0 ? choices : IDLE_ONESHOTS
+  const pick = pool[Math.floor(Math.random() * pool.length)]
+  lastIdlePickKey = pick[0]
+  return pick
 }
-function pickPool(key, now) {
-  const pool = STATE_POOLS[key]
-  if (!pool || pool.length === 0) return 'idle'
-  const idx = Math.floor(now / IDLE_ROTATE_MS) % pool.length
-  return pool[idx]
+function resetIdleCycle(now) {
+  idleCycleStart = now
+  idleCyclePick = null
+}
+function idleStateAt(now) {
+  if (settings.idle === false) return { key: 'idle', reason: 'idle-static' }
+  if (!idleCyclePick) idleCyclePick = pickIdleAction()
+  const elapsed = now - idleCycleStart
+  if (elapsed < IDLE_HOLD_MS) return { key: 'idle', reason: 'idle' }
+  if (elapsed < IDLE_HOLD_MS + idleCyclePick[1]) return { key: idleCyclePick[0], reason: 'idle' }
+  resetIdleCycle(now)
+  return { key: 'idle', reason: 'idle' }
 }
 
 const sessions = new Map()
 let lastActivity = Date.now()
+let idleCycleStart = Date.now()
+let idleCyclePick = null
+let lastIdlePickKey = null
 let lastTurnEndAt = 0
 let lastErrorAt = 0
 let lastCompactAt = 0
@@ -185,9 +198,10 @@ function onSessionEvent(session, event) {
     const now = Date.now()
     if (wasSleeping) {
       wasSleeping = false
-      reaction = { key: 'waking', until: now + 1400 }
+      reaction = { key: 'waking', until: now + 1900 }
     }
     lastActivity = now
+    resetIdleCycle(now)
     if (/compact/i.test(type)) { lastCompactAt = now; return }
     if (/worktree/i.test(type)) { lastCarryAt = now; return }
     if (type === 'turn/start') { st.turns += 1; return }
@@ -259,7 +273,12 @@ function anyTurnActive() {
 function currentState() {
   const now = Date.now()
   if (forced && forced.until > now) return { key: forced.key, reason: 'forced' }
-  if (reaction && reaction.until > now) return { key: reaction.key, reason: 'reaction' }
+  if (reaction && reaction.until > now) {
+    // 会话动作优先级最高：刚醒时如果已经有回合/工具/多子代理在跑，直接显示工作状态。
+    const workActive = anyTurnActive() || toolSessionCount() > 0 || subagents >= 2
+    if (reaction.key === 'waking' && workActive) reaction = null
+    else return { key: reaction.key, reason: 'reaction' }
+  }
   if (pendingApprovals() > 0) return { key: 'notification', reason: 'approval' }
   if (now - lastErrorAt < 4500) return { key: 'error', reason: 'error' }
   if (now - lastCompactAt < 4200) return { key: 'compacting', reason: 'compacting' }
@@ -272,12 +291,11 @@ function currentState() {
   if (anyTurnActive()) return { key: 'thinking', reason: 'turn' }
   if (completionPending) return { key: 'happy', reason: 'completion-ack' }
   if (now - lastTurnEndAt < HAPPY_MS) return { key: 'happy', reason: 'turn-end' }
-  if (now - lastActivity > 60000) {
+  if (now - lastActivity >= SLEEP_AFTER_MS) {
     wasSleeping = true
     return { key: 'sleeping', reason: 'idle-long' }
   }
-  if (settings.idle === false) return { key: 'idle', reason: 'idle-static' }
-  return { key: pickPool('idle', now), reason: 'idle' }
+  return idleStateAt(now)
 }
 
 function statePayload() {
@@ -499,10 +517,25 @@ function handle(req, res) {
       const now = Date.now()
       const wasCompletion = completionPending
       if (kind === 'poke-left' || kind === 'poke-right' || kind === 'tickle' || kind === 'waking') completionPending = false
-      const durations = { 'poke-left': 900, 'poke-right': 900, tickle: 1700, drag: 60000, 'drag-end': 0, waking: 1300, 'smile-hearts': 2600, 'thumbs-up': 3200, happy: 2400 }
+      const durations = { 'poke-left': 900, 'poke-right': 900, tickle: 1700, drag: 60000, 'drag-end': 0, 'smile-hearts': 2600, 'thumbs-up': 3200, happy: 2400 }
       if (kind === 'drag-end') { if (reaction && reaction.key === 'drag') reaction = null; sendJson(res, 200, { ok: true }); return }
       if (kind === 'hide') { settings.enabled = false; saveSettings(); sendJson(res, 200, { ok: true }); return }
       if (kind === 'show') { settings.enabled = true; saveSettings(); sendJson(res, 200, { ok: true }); return }
+      if (kind === 'waking') {
+        // 睡着时被戳：播被吵醒，随后从「待机眨眼」重新开始正常循环。
+        wasSleeping = false
+        lastActivity = now
+        resetIdleCycle(now)
+        reaction = { key: 'waking', until: now + 1900 }
+        sendJson(res, 200, { ok: true, key: 'waking' })
+        return
+      }
+      if (kind !== 'drag-end') {
+        // 任何互动都算「有动作」，把 5 分钟睡眠计时和待机循环一起重置。
+        lastActivity = now
+        resetIdleCycle(now)
+        wasSleeping = false
+      }
       if (wasCompletion && (kind === 'poke-left' || kind === 'poke-right')) {
         // 点击确认「任务完成」：播一次点赞 GIF，之后回到正常状态机。
         reaction = { key: 'thumbs-up', until: now + 3200 }
@@ -617,6 +650,7 @@ async function pollWorkbench() {
       // 等用户单击一次桌宠时再播点赞 GIF。
       completionPending = true
       lastActivity = Date.now()
+      resetIdleCycle(lastActivity)
     }
   } catch (err) {}
 }
@@ -657,7 +691,7 @@ function onDomainChange(change) {
     archivedPrev = new Set(ids)
     if (prev === null) return
     for (const id of ids) {
-      if (!prev.has(id)) { lastCompactAt = Date.now(); lastActivity = Date.now(); return }
+      if (!prev.has(id)) { lastCompactAt = Date.now(); lastActivity = Date.now(); resetIdleCycle(lastActivity); return }
     }
   } catch (err) {}
 }
@@ -672,8 +706,8 @@ export function apply(ctx) {
     if (archivedPrev === null) archivedPrev = new Set()
     disposeList.push(ctx.on('session/event', onSessionEvent))
     try { disposeList.push(ctx.on('domain/changed', onDomainChange)) } catch (err) {}
-    try { disposeList.push(ctx.on('subagent/start', () => { subagents += 1; lastActivity = Date.now() })) } catch (err) {}
-    try { disposeList.push(ctx.on('subagent/end', () => { subagents = Math.max(0, subagents - 1); lastActivity = Date.now() })) } catch (err) {}
+    try { disposeList.push(ctx.on('subagent/start', () => { subagents += 1; lastActivity = Date.now(); resetIdleCycle(lastActivity) })) } catch (err) {}
+    try { disposeList.push(ctx.on('subagent/end', () => { subagents = Math.max(0, subagents - 1); lastActivity = Date.now(); resetIdleCycle(lastActivity) })) } catch (err) {}
     try { disposeList.push(ctx.on('session/disposed', (session) => { if (session && session.id) sessions.delete(String(session.id)) })) } catch (err) {}
     if (typeof ctx.effect === 'function') {
       ctx.effect(() => () => { for (const off of disposeList) { try { off() } catch (err) {} } stopDesktop() }, 'whale-pet: listeners')

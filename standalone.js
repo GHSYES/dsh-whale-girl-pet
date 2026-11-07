@@ -52,7 +52,7 @@
   // 页面自己的 origin 就是宿主地址：用作 origin 兜底，端口变了也能自愈。
   post('/api/hello', { origin: location.origin })
   pick().then(draw)
-  setInterval(function () { pick().then(draw) }, 900)
+  setInterval(function () { pick().then(draw) }, 400)
 
   function setCursor() {
     document.body.style.cursor = drag ? 'grabbing' : (ctrl ? 'grab' : 'default')
