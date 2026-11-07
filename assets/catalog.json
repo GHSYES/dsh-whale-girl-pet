@@ -1,0 +1,253 @@
+{
+  "id": "whale-girl-emoji",
+  "name": "鲸娘像素表情集",
+  "width": 69,
+  "height": 66,
+  "scale": 8,
+  "source": "https://dshtui.com/pets/whale-girl-emoji/",
+  "syncedAt": "2026-11-07T06:14:32.428Z",
+  "anims": [
+    {
+      "key": "idle",
+      "title": "待机眨眼",
+      "en": "Idle",
+      "state": "idle",
+      "trigger": "SessionStart，或者没有活的时候",
+      "group": "daily",
+      "summary": "跟着呼吸轻轻起伏，尾巴慢慢摆，隔一会儿眨一次眼，再连眨两下。",
+      "file": "01-待机眨眼",
+      "gif": "01-idle.gif"
+    },
+    {
+      "key": "idle-look",
+      "title": "东张西望",
+      "en": "Look around",
+      "state": "idle",
+      "trigger": "待机时随机播放",
+      "group": "daily",
+      "summary": "眼珠往左瞟、眨眨眼，再往右上看，头顶冒出问号，呆毛和尾巴好奇地晃。",
+      "file": "02-东张西望",
+      "gif": "02-idle-look.gif"
+    },
+    {
+      "key": "idle-spout",
+      "title": "开心喷水",
+      "en": "Water spout",
+      "state": "idle",
+      "trigger": "idleAnimations，待机时随机播放",
+      "group": "daily",
+      "summary": "先憋一口气（眯眼鼓腮、头往下压扁），再“噗”地从头顶喷出一股小水柱，水花散成两道弧线落下。",
+      "file": "03-开心喷水",
+      "gif": "03-idle-spout.gif"
+    },
+    {
+      "key": "thinking",
+      "title": "思考中",
+      "en": "Thinking",
+      "state": "thinking",
+      "trigger": "UserPromptSubmit，收到提问",
+      "group": "work",
+      "summary": "眼睛往上看，右上方冒出两颗小泡泡和一朵思考云，三个点依次出现再波浪跳，最后变成亮起来的灯泡。",
+      "file": "04-思考中",
+      "gif": "04-thinking.gif"
+    },
+    {
+      "key": "typing",
+      "title": "敲代码",
+      "en": "Typing",
+      "state": "working",
+      "trigger": "PreToolUse，1 个会话在跑工具",
+      "group": "work",
+      "summary": "长时间干活的循环：面前摆着键盘，半垂着眼，左右两只手轮流一下一下敲，右上角一个字一个字冒出代码，写满一行就往上滚、变灰，头跟着轻轻点一下，偶尔眨眨眼，一直敲下去。",
+      "file": "05-敲代码",
+      "gif": "05-typing.gif"
+    },
+    {
+      "key": "music",
+      "title": "戴耳机听歌",
+      "en": "Headphones",
+      "state": "working",
+      "trigger": "PreToolUse，2 个会话同时跑工具",
+      "group": "work",
+      "summary": "戴上红色耳机，眯眼抿着小嘴笑，跟着节拍一沉一弹，呆毛和耳鳍晚半拍甩，音符从两边耳罩轮流飘上去。",
+      "file": "06-戴耳机听歌",
+      "gif": "06-music.gif"
+    },
+    {
+      "key": "conducting",
+      "title": "小鲸鱼分身",
+      "en": "Sub-agents",
+      "state": "juggling",
+      "trigger": "SubagentStart，派出 2 个以上子代理",
+      "group": "work",
+      "summary": "派出去的分身变成三只迷你小鲸鱼，在她身后慢慢地一上一下漂着，时不时吐个泡泡；她抿嘴笑着，眼睛跟着它们从左看到右。",
+      "file": "07-小鲸鱼分身",
+      "gif": "07-conducting.gif"
+    },
+    {
+      "key": "building",
+      "title": "施工中",
+      "en": "Building",
+      "state": "working",
+      "trigger": "PreToolUse，3 个以上会话同时跑工具",
+      "group": "work",
+      "summary": "同时有 3 个以上会话在跑工具时出现：每个会话“丢”下一块彩色积木，她双手合在胸前、眼睛跟着看，积木砸实时身体一沉再弹起；最底下一层搭好就闪一下收走，楼往下落一格，下一块又来了，一直循环。",
+      "file": "08-施工中",
+      "gif": "08-building.gif"
+    },
+    {
+      "key": "error",
+      "title": "出错啦",
+      "en": "Error",
+      "state": "error",
+      "trigger": "PostToolUseFailure，工具执行失败",
+      "group": "alert",
+      "summary": "吓得一抖：头猛地往上一窜再左右乱晃（晃动逐渐减小），眼睛变成 x x，头顶冒烟，左上角弹出红色 ✕，额角滑下一滴汗。",
+      "file": "09-出错啦",
+      "gif": "09-error.gif"
+    },
+    {
+      "key": "happy",
+      "title": "任务完成",
+      "en": "Task complete",
+      "state": "attention",
+      "trigger": "Stop / PostCompact，任务完成",
+      "group": "alert",
+      "summary": "双手合十笑成 ^^：先往下压、再弹起来，头发和耳鳍跟着甩；右上角弹出绿色 ✓，彩纸从头顶落下。",
+      "file": "10-任务完成",
+      "gif": "10-happy.gif"
+    },
+    {
+      "key": "notification",
+      "title": "需要你确认",
+      "en": "Needs you",
+      "state": "notification",
+      "trigger": "PermissionRequest，等你批准",
+      "group": "alert",
+      "summary": "瞪圆眼睛张着嘴，张开小手上下挥，右上角黄色感叹气泡左右摇晃一闪一闪，尾巴拼命甩。",
+      "file": "11-需要你确认",
+      "gif": "11-notification.gif"
+    },
+    {
+      "key": "compacting",
+      "title": "上下文清理",
+      "en": "Context compaction",
+      "state": "sweeping",
+      "trigger": "PreCompact，压缩上下文之前",
+      "group": "work",
+      "summary": "四周散着彩色的上下文碎片，眯眼憋气把它们一格格吸进头顶，憋到头都压扁了，再“噗”地挤出一块整整齐齐的压缩方块。",
+      "file": "12-上下文清理",
+      "gif": "12-compacting.gif"
+    },
+    {
+      "key": "carrying",
+      "title": "抱书搬运",
+      "en": "Carrying",
+      "state": "carrying",
+      "trigger": "WorktreeCreate，新建工作区",
+      "group": "work",
+      "summary": "新建工作区（worktree）时出现：像女仆搬书房一样，她两只手从两边捧着一摞粉、白、蓝三本书（夹着粉色书签），原地一步一颠地往新工作区走；底下两本跟着手走，最上面那本晚一拍才落下，身后拖出几道速度线。",
+      "file": "13-抱书搬运",
+      "gif": "13-carrying.gif"
+    },
+    {
+      "key": "sleeping",
+      "title": "呼呼大睡",
+      "en": "Sleeping",
+      "state": "sleeping",
+      "trigger": "鼠标 60 秒没动",
+      "group": "daily",
+      "summary": "闭着眼睛睡着，脸红红的，头随呼吸慢慢垂下去再抬回来，鼻子上的鼻涕泡跟着一鼓一缩，Zzz 一个接一个往右上飘。",
+      "file": "14-呼呼大睡",
+      "gif": "14-sleeping.gif"
+    },
+    {
+      "key": "waking",
+      "title": "被吵醒",
+      "en": "Waking up",
+      "state": "waking",
+      "trigger": "睡着时动鼠标或点她",
+      "group": "daily",
+      "summary": "睡得正香，鼻涕泡“啵”地破了：眼睛一下瞪圆、冒出红色感叹号，吓得往上一窜，呆毛弹起来又回弹，眨两下眼恢复精神。",
+      "file": "15-被吵醒",
+      "gif": "15-waking.gif"
+    },
+    {
+      "key": "poke-left",
+      "title": "戳左边",
+      "en": "Poke (left)",
+      "state": "reaction",
+      "trigger": "单击她的左脸",
+      "group": "touch",
+      "summary": "被戳到左脸：眯眼抿嘴，头被推开 1 格、弹回来冲过头再回正；然后脸红笑起来，冒出一颗爱心。",
+      "file": "16-戳左边",
+      "gif": "16-poke-left.gif"
+    },
+    {
+      "key": "poke-right",
+      "title": "戳右边",
+      "en": "Poke (right)",
+      "state": "reaction",
+      "trigger": "单击她的右脸",
+      "group": "touch",
+      "summary": "被戳到右脸：头往另一边弹，同样害羞冒心。",
+      "file": "17-戳右边",
+      "gif": "17-poke-right.gif"
+    },
+    {
+      "key": "tickle",
+      "title": "被挠痒痒",
+      "en": "Tickled",
+      "state": "reaction",
+      "trigger": "连续快速点击（1 秒内 3 下以上）",
+      "group": "touch",
+      "summary": "笑得合不拢嘴，头上下左右乱颤，呆毛、耳鳍、尾巴一起乱甩，小爱心和星星到处冒；笑够了长舒一口气。",
+      "file": "18-被挠痒痒",
+      "gif": "18-tickle.gif"
+    },
+    {
+      "key": "drag",
+      "title": "被拎起来",
+      "en": "Dragged",
+      "state": "reaction",
+      "trigger": "按住她拖动",
+      "group": "touch",
+      "summary": "被鼠标拎住时原地不动，只是慌了：眼睛瞪圆、嘴抿成小波浪，头左右乱晃，胸前的双手紧张地一抖一抖，尾巴乱扑腾，汗珠往两边飞，头顶冒出红色“!!”。",
+      "file": "19-被拎起来",
+      "gif": "19-drag.gif"
+    },
+    {
+      "key": "swim",
+      "title": "游来游去",
+      "en": "Swim",
+      "state": "idle · roam",
+      "trigger": "自由漫游",
+      "group": "daily",
+      "summary": "下半身泡在一片会滚动的水波里，整个人跟着水一沉一浮，尾巴露出水面左右划水，身边冒小气泡。",
+      "file": "20-游来游去",
+      "gif": "20-swim.gif"
+    },
+    {
+      "key": "smile-hearts",
+      "title": "看着微笑冒爱心",
+      "en": "Smile & hearts",
+      "state": "bonus",
+      "trigger": "不绑定事件，可做完成时的随机彩蛋",
+      "group": "love",
+      "summary": "双手合十笑眯眯，连着弹两下，四颗爱心轮流冒出来：小 → 大 → 回弹 → 飘走。",
+      "file": "21-看着微笑冒爱心",
+      "gif": "21-smile-hearts.gif"
+    },
+    {
+      "key": "thumbs-up",
+      "title": "看着举大拇指",
+      "en": "Thumbs up",
+      "state": "bonus",
+      "trigger": "不绑定事件，可做完成时的随机彩蛋",
+      "group": "love",
+      "summary": "看着你握拳蓄力，“嘿”地竖起大拇指，冲过头再回落站稳，脸一红，旁边闪星星。",
+      "file": "22-看着举大拇指",
+      "gif": "22-thumbs-up.gif"
+    }
+  ]
+}
