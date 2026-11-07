@@ -12,7 +12,7 @@
 
 This is not a widget inside the web page. The pet is a separate transparent, always-on-top Electron window on your Windows desktop: no taskbar entry, no duplicate overlay inside DSH. It listens to real host events — sessions, tool calls, approvals, subagents, archived sessions — and maps what the agent is doing to 22 pixel animations. You can poke her, tickle her, hold Ctrl to drag her around, and resize her at any time.
 
-The art ships with the plugin, so a fresh install works out of the box. Drop same-named files into `%DSH_HOME%\pets\whale-girl-emoji` to override the bundled set.All materials are sourced from dsh-tui.
+The art ships with the plugin, so a fresh install works out of the box. Drop same-named files into `%DSH_HOME%\pets\whale-girl-emoji` to override the bundled set.**All materials are sourced from dsh-tui.**
 
 ## Features
 
